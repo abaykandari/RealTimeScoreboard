@@ -1,0 +1,97 @@
+server:
+  port: 8080
+
+# ─── gRPC ───────────────────────────────────────────────────────────────────
+grpc:
+  server:
+    port: 9090
+    security:
+      enabled: false   # TLS disabled for local dev; enable in prod
+
+# ─── Kafka ──────────────────────────────────────────────────────────────────
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all                  # strongest durability guarantee
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      group-id: scoreboard-consumer-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false  # manual ack for at-least-once processing
+      properties:
+        spring.json.trusted.packages: "com.scoreboard.model"
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 3             # 3 consumer threads per partition group
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 1000ms
+
+  # ─── Security ───────────────────────────────────────────────────────────────
+  security:
+    user:
+      name: admin
+      password: admin
+
+# ─── Application properties ─────────────────────────────────────────────────
+app:
+  kafka:
+    topics:
+      score-events: leaderboard-score-events
+      score-events-partitions: 6
+      score-events-replicas: 1
+  redis:
+    keys:
+      global-leaderboard: "leaderboard:global"
+      game-leaderboard-prefix: "leaderboard:game:"
+      user-profile-prefix: "user:profile:"
+    ttl:
+      user-profile-seconds: 86400       # 24 hours
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production-please}
+    expiration-hours: 24
+  leaderboard:
+    stream-interval-ms: 2000           # push updates every 2 seconds
+    default-top-n: 10
+
+# ─── Actuator / Metrics ─────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ─── Logging ────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.scoreboard: DEBUG
+    org.springframework.kafka: INFO
+    io.grpc: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.scoreboard.grpc";
+option java_outer_classname = "LeaderboardProto";
+
+package leaderboard;
+
+// ─────────────────────────────────────────────
+//  Auth Messages
+// ─────────────────────────────────────────────
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email    = 3;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+  string message = 2;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token   = 1;
+  string user_id = 2;
+}
+
+// ─────────────────────────────────────────────
+//  Score Messages
+// ─────────────────────────────────────────────
+
+message SubmitScoreRequest {
+  string user_id  = 1;
+  string username = 2;
+  string game_id  = 3;
+  double score    = 4;
+}
+
+message SubmitScoreResponse {
+  bool   success    = 1;
+  int64  global_rank = 2;
+  string message    = 3;
+}
+
+// ─────────────────────────────────────────────
+//  Leaderboard Messages
+// ─────────────────────────────────────────────
+
+message GetLeaderboardRequest {
+  string game_id = 1;   // empty = global
+  int32  limit   = 2;   // default 10
+  int32  offset  = 3;
+}
+
+message LeaderboardEntry {
+  int64  rank     = 1;
+  string user_id  = 2;
+  string username = 3;
+  double score    = 4;
+}
+
+message LeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+  int64                     total   = 2;
+}
+
+message GetUserRankRequest {
+  string user_id = 1;
+  string game_id = 2;
+}
+
+message GetUserRankResponse {
+  int64  rank     = 1;
+  double score    = 2;
+  string username = 3;
+}
+
+// ─────────────────────────────────────────────
+//  Streaming Messages
+// ─────────────────────────────────────────────
+
+message StreamLeaderboardRequest {
+  string game_id      = 1;
+  int32  top_n        = 2;   // stream top N entries
+  string auth_token   = 3;
+}
+
+message LeaderboardUpdate {
+  string                    game_id   = 1;
+  repeated LeaderboardEntry entries   = 2;
+  int64                     timestamp = 3;
+  string                    event_type = 4;  // SCORE_UPDATE | RANK_CHANGE
+}
+
+// ─────────────────────────────────────────────
+//  Service Definition
+// ─────────────────────────────────────────────
+
+service LeaderboardService {
+  // Auth
+  rpc Register(RegisterRequest)   returns (RegisterResponse);
+  rpc Login(LoginRequest)         returns (LoginResponse);
+
+  // Scores
+  rpc SubmitScore(SubmitScoreRequest)     returns (SubmitScoreResponse);
+
+  // Leaderboard queries
+  rpc GetGlobalLeaderboard(GetLeaderboardRequest) returns (LeaderboardResponse);
+  rpc GetGameLeaderboard(GetLeaderboardRequest)   returns (LeaderboardResponse);
+  rpc GetUserRank(GetUserRankRequest)             returns (GetUserRankResponse);
+
+  // Real-time streaming — server pushes updates to client
+  rpc StreamLeaderboard(StreamLeaderboardRequest) returns (stream LeaderboardUpdate);
+}
