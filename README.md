@@ -1,6 +1,6 @@
 # Real-Time Scoreboard — Java Spring Boot
 
-A production-grade real-time leaderboard system rebuilt in **Java 21 + Spring Boot 3**, preserving the full architecture of the original Go system: **gRPC streaming**, **Kafka event pipeline**, and **Redis sorted sets**, with a bonus **WebSocket (STOMP)** channel for browser clients.
+A production-grade real-time leaderboard system built in **Java 21 + Spring Boot 3**: **gRPC streaming**, **Kafka event pipeline**, and **Redis sorted sets**, with a **WebSocket (STOMP)** channel for browser clients.
 
 ---
 
@@ -24,12 +24,12 @@ A production-grade real-time leaderboard system rebuilt in **Java 21 + Spring Bo
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Clients                                                         │
-│  ┌─────────────┐   ┌──────────────┐   ┌────────────────────┐     │
+│  ┌─────────────┐   ┌──────────────┐   ┌─────────────────────┐    │
 │  │ gRPC Client │   │ REST Client  │   │ Browser (WebSocket) │    │
-│  └──────┬──────┘   └──────┬───────┘   └─────────┬──────────┘     │
-└─────────┼────────────────┼──────────────────────┼────────────────┘
-          │ gRPC :9090      │ HTTP :8080            │ WS :8080/ws
-          ▼                 ▼                       ▼
+│  └──────┬──────┘   └──────┬───────┘   └─────────┬───────────┘    │
+└─────────┼─────────────────┼─────────────────────┼────────────────┘
+          │ gRPC :9090      │ HTTP :8080          │ WS :8080/ws
+          ▼                 ▼                     ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Spring Boot Application                                        │
 │                                                                 │

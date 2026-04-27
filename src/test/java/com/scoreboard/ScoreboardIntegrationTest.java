@@ -1,4 +1,3 @@
-/*
 package com.scoreboard;
 
 import com.scoreboard.kafka.ScoreEventProducer;
@@ -17,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-*/
-/**
+
+/*
  * End-to-end integration test.
  *
  * Uses:
@@ -28,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Test flow:
  *   Producer.publish → [Kafka] → Consumer.process → Redis.updateScore
  *   Then assert Redis leaderboard reflects the submitted score.
- *//*
+ */
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -88,4 +87,3 @@ class ScoreboardIntegrationTest {
         assertThat(rank.getScore()).isEqualTo(5000.0);
     }
 }
-*/
