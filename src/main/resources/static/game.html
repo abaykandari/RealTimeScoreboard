@@ -335,8 +335,19 @@ input::placeholder{color:var(--muted)}
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-const BASE_URL  = 'http://localhost:8080';
-const WS_URL    = BASE_URL + '/ws';
+// ── Self-referencing BASE_URL ─────────────────────────────────────────────
+// The frontend is served by the same Spring Boot app on the same port.
+// window.location.origin gives us the exact host:port this page was loaded
+// from — works on localhost:8080, ngrok URLs, and any other deployment
+// without any code changes.
+//
+//   Local:  http://localhost:8080
+//   ngrok:  https://abc123.ngrok-free.app   ← automatic, nothing to change
+//   VPS:    https://yourserver.com          ← automatic too
+const BASE_URL = window.location.origin;
+// WebSocket URL — same host as REST, but ws:// or wss:// protocol.
+// window.location.protocol gives 'http:' or 'https:' — replace with ws: or wss:
+const WS_URL = BASE_URL.replace(/^http/, 'ws') + '/ws';
 const GAME_ID   = 'asteroid-shooter';
 const GAME_SECS = 180;
 

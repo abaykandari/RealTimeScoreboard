@@ -13,19 +13,7 @@ import java.util.UUID;
 /**
  * Handles user registration and authentication.
  *
- * KEY FIX: The original AuthService.findByUsername() always returned null
- * (hardcoded placeholder). Login always failed even for correct passwords.
- *
- * ROOT CAUSE:
- *   Redis profile key is "user:profile:{userId}" — NOT "user:profile:{username}".
- *   The original code passed username where userId was expected, so the key
- *   lookup always missed.
- *
- * THE FIX — two-step lookup with a secondary index:
- *   On register: HSET username:index <username> <userId>
- *   On login:    HGET username:index <username>  → userId → profile fetch
- *
- * Both operations are O(1). No full Redis key scan needed.
+ * LOGIN : GET user:profile:alice → profile
  */
 @Slf4j
 @Service
@@ -36,7 +24,7 @@ public class AuthService {
     private final PasswordEncoder            passwordEncoder;
     private final JwtUtil                    jwtUtil;
 
-    // ── Registration ──────────────────────────────────────────────────────
+    // ── Registration ──────────────────────────────────────────────────────────
 
     public String register(String username, String rawPassword, String email) {
         if (repository.usernameExists(username)) {
@@ -53,42 +41,32 @@ public class AuthService {
                 .passwordHash(passwordHash)
                 .build();
 
-        // 1. Save the full profile at:  user:profile:{userId}
+        // One write. Key = user:profile:{username}. No TTL. No secondary index.
         repository.saveUserProfile(profile);
-
-        // 2. Write secondary index:     username:index HSET username → userId
-        //    Without this, login has no way to go from a username to a profile.
-        repository.saveUsernameIndex(username, userId);
 
         log.info("[Auth] Registered userId={} username={}", userId, username);
         return userId;
     }
 
-    // ── Login ─────────────────────────────────────────────────────────────
+    // ── Login ─────────────────────────────────────────────────────────────────
 
     public record LoginResult(String token, String userId) {}
 
     public LoginResult login(String username, String rawPassword) {
-        // Step 1: username → userId  via secondary index (O(1) HGET)
-        String userId = repository.findUserIdByUsername(username);
-        if (userId == null) {
-            log.warn("[Auth] Username not found: {}", username);
-            throw new IllegalArgumentException("Invalid credentials");
-        }
+        // Single Redis GET: user:profile:{username}
+        UserProfile profile = repository.findProfileByUsername(username)
+                .orElseThrow(() -> {
+                    log.warn("[Auth] No account found for username={}", username);
+                    return new IllegalArgumentException("Invalid credentials");
+                });
 
-        // Step 2: userId → full profile  (O(1) GET on "user:profile:{userId}")
-        UserProfile profile = repository.findUserProfile(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
-
-        // Step 3: verify BCrypt hash
         if (!passwordEncoder.matches(rawPassword, profile.getPasswordHash())) {
             log.warn("[Auth] Wrong password for username={}", username);
             throw new IllegalArgumentException("Invalid credentials");
         }
 
-        // Step 4: issue signed JWT
         String token = jwtUtil.generateToken(profile.getUserId(), profile.getUsername());
-        log.info("[Auth] Login success userId={}", userId);
-        return new LoginResult(token, userId);
+        log.info("[Auth] Login success userId={}", profile.getUserId());
+        return new LoginResult(token, profile.getUserId());
     }
 }

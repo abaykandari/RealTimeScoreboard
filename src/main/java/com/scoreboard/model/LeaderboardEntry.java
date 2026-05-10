@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LeaderboardEntry {
 
-    private long   rank;
+    private long rank;
     private String userId;
     private String username;
     private double score;

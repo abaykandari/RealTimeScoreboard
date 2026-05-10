@@ -12,12 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Core leaderboard service.
- *
- * This class contains ONLY business logic — all Redis operations are
- * delegated to {@link RedisLeaderboardRepository}. This makes the
- * service trivially unit-testable: mock the repository interface,
- * no RedisTemplate instrumentation needed.
+ * Core leaderboard service — pure business logic, zero Redis coupling.
+ * All storage is delegated to RedisLeaderboardRepository.
  */
 @Slf4j
 @Service
@@ -26,12 +22,8 @@ public class LeaderboardService {
 
     private final RedisLeaderboardRepository repository;
 
-    // ── Write path (called by Kafka consumer) ─────────────────────────────
+    // ── Write path (called by Kafka consumer) ─────────────────────────────────
 
-    /**
-     * Process a score event: update both the global and game-specific
-     * leaderboards using personal-best semantics (GT semantics in Redis).
-     */
     public void updateScore(ScoreEvent event) {
         repository.updateScore(
                 event.getUserId(),
@@ -39,11 +31,9 @@ public class LeaderboardService {
                 event.getGameId(),
                 event.getScore()
         );
-        log.debug("[LeaderboardService] Updated score userId={} game={} score={}",
-                event.getUserId(), event.getGameId(), event.getScore());
     }
 
-    // ── Read path ─────────────────────────────────────────────────────────
+    // ── Leaderboard reads ─────────────────────────────────────────────────────
 
     public List<LeaderboardEntry> getGlobalLeaderboard(int limit, int offset) {
         return repository.getGlobalLeaderboard(limit, offset);
@@ -53,9 +43,6 @@ public class LeaderboardService {
         return repository.getGameLeaderboard(gameId, limit, offset);
     }
 
-    /**
-     * @param gameId pass null or blank for the global leaderboard
-     */
     public LeaderboardEntry getUserRank(String userId, String gameId) {
         return repository.getUserRank(userId, gameId);
     }
@@ -64,18 +51,15 @@ public class LeaderboardService {
         return repository.getGlobalLeaderboardSize();
     }
 
-    // ── User profile ──────────────────────────────────────────────────────
+    // ── User profile ──────────────────────────────────────────────────────────
 
     public void saveUserProfile(UserProfile profile) {
         repository.saveUserProfile(profile);
     }
 
-    public Optional<UserProfile> getUserProfile(String userId) {
-        return repository.findUserProfile(userId);
-    }
-
-    public boolean userExists(String userId) {
-        return repository.findUserProfile(userId).isPresent();
+    /** Look up by username — the only access pattern we need */
+    public Optional<UserProfile> findProfileByUsername(String username) {
+        return repository.findProfileByUsername(username);
     }
 
     public boolean usernameExists(String username) {

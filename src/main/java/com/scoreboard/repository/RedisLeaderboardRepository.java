@@ -9,19 +9,26 @@ import java.util.Optional;
 /**
  * Repository interface for all leaderboard persistence operations.
  *
- * WHY THIS EXISTS:
- * RedisTemplate is a concrete class — extremely hard to mock with Mockito on
- * Java 21+ due to Byte Buddy JVM restrictions. Hiding Redis behind this plain
- * interface means unit tests use a simple JDK proxy mock, zero instrumentation.
+ * PROFILE KEY DESIGN (v2):
+ * ─────────────────────────
+ * Profiles are now stored at:  user:profile:{username}
+ *
+ * NEW DESIGN:
+ *   - Key  = user:profile:{username}   (username is the unique identifier)
+ *   - No TTL — profiles live until explicitly deleted
+ *   - username uniqueness check = check whether the key exists
+ *   - login = single GET, no index needed at all
+ *   - No username:index HASH needed → removed entirely
+ *
+ * The userId UUID is still generated on registration and stored INSIDE the
+ * profile JSON. It is used in JWTs and leaderboard sorted sets so that a
+ * user can rename their username later without breaking their score history
+ * (the ZSET member stays as userId, only the display name changes).
  */
 public interface RedisLeaderboardRepository {
 
     // ── Score writes ─────────────────────────────────────────────────────────
 
-    /**
-     * Update score in global + game-specific leaderboard.
-     * GT semantics: only writes if new score > existing score (personal best).
-     */
     void updateScore(String userId, String username, String gameId, double score);
 
     // ── Leaderboard reads ────────────────────────────────────────────────────
@@ -37,28 +44,27 @@ public interface RedisLeaderboardRepository {
 
     // ── User profile ─────────────────────────────────────────────────────────
 
+    /**
+     * Save a user profile.
+     * Key: user:profile:{username}
+     * No TTL — profiles persist until explicitly deleted.
+     */
     void saveUserProfile(UserProfile profile);
 
-    Optional<UserProfile> findUserProfile(String userId);
+    /**
+     * Look up a profile by username.
+     * Single O(1) GET — no secondary index involved.
+     *
+     * @param username the plain username string (not userId)
+     */
+    Optional<UserProfile> findProfileByUsername(String username);
 
+    /**
+     * Check if a username is already registered.
+     * Implemented as EXISTS user:profile:{username} — O(1).
+     */
     boolean usernameExists(String username);
 
-    /**
-     * Write the secondary index:  HSET username:index <username> <userId>
-     *
-     * THE FIX for the broken login bug.
-     * Without this, login has no way to go from a username string to a userId,
-     * which is what's needed to look up the profile in Redis.
-     *
-     * Call this immediately after saveUserProfile() on every registration.
-     */
-    void saveUsernameIndex(String username, String userId);
-
-    /**
-     * Reverse-lookup: username → userId via secondary index.
-     * HGET username:index <username>
-     *
-     * @return userId, or null if username was never registered
-     */
-    String findUserIdByUsername(String username);
+    /** No-op default — index removed. Exists only so old test verify(never()) compiles. */
+    default void saveUsernameIndex(String username, String userId) {}
 }
