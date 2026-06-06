@@ -72,7 +72,7 @@ public class RedisLeaderboardRepositoryImpl implements RedisLeaderboardRepositor
      *   if you accidentally call userProfileTemplate on a ZSET key you get
      *   a clear type error rather than garbled binary data.
      */
-    private final RedisTemplate<String, String>      stringRedisTemplate;
+    private final RedisTemplate<String, String> stringRedisTemplate;
     private final RedisTemplate<String, UserProfile> userProfileTemplate;
 
     @Value("${app.redis.keys.global-leaderboard}")
