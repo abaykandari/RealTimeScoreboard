@@ -41,7 +41,9 @@ EXPOSE 8080 9090
 #   +UseG1GC              — low-pause GC suitable for server workloads
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
+  "-XX:MaxRAMPercentage=55.0", \
+  "-XX:MaxMetaspaceSize=96m", \
+  "-Xss256k", \
   "-XX:+UseG1GC", \
   "-XX:+OptimizeStringConcat", \
   "-Djava.security.egd=file:/dev/./urandom", \
