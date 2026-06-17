@@ -99,6 +99,7 @@ services:
   # ─── Redis Commander (optional web UI) ──────────────────────────────────────
   redis-commander:
     image: rediscommander/redis-commander:latest
+    platform: linux/arm64
     container_name: scoreboard-redis-ui
     networks: [scoreboard-net]
     depends_on: [redis]
