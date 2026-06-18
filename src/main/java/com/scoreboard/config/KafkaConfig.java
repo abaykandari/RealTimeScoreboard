@@ -58,8 +58,8 @@ public class KafkaConfig {
     public NewTopic scoreEventsTopic() {
         return TopicBuilder
                 .name(scoreEventsTopic)
-                .partitions(partitions)
-                .replicas(replicas)
+                .partitions(2)  // was 6 — Aiven free tier max is 2
+                .replicas(1)
                 .compact()
                 .build();
     }
