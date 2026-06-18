@@ -13,11 +13,9 @@ server:
 # ─── gRPC ────────────────────────────────────────────────────────────────────
 grpc:
   server:
-    port: 9090
-    address: 127.0.0.1   # bind to localhost only, not 0.0.0.0
-    # Render's port scanner can't reach it
+    port: ${GRPC_SERVER_PORT:9090}   # reads env var, defaults to 9090 locally
     security:
-      enabled: false   # TLS disabled for local dev; enable in prod
+      enabled: false
 
 # ─── Kafka ───────────────────────────────────────────────────────────────────
 spring:
