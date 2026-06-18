@@ -33,7 +33,7 @@ WORKDIR /app
 COPY --from=builder /build/target/RealTimeScoreboard-*.jar app.jar
 
 # Expose ports: 8080 (REST/WS), 9090 (gRPC)
-EXPOSE 8080 9090
+EXPOSE 8080
 
 # JVM tuning for containers:
 #   UseContainerSupport   — respect cgroup memory limits
